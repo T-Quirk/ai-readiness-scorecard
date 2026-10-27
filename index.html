@@ -185,10 +185,18 @@ document.getElementById("form").addEventListener("submit", async (e) => {
   };
 
   const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "Working…";
+  // Send without making the lead wait: FormSubmit can take 10s+ to answer.
+  // sendBeacon survives the redirect; the fetch fallback is capped at 4s.
   if (!testMode){
-    try{
-      await fetch(SUBMIT_URL, {method:"POST", headers:{"Content-Type":"application/json","Accept":"application/json"}, body: JSON.stringify(payload)});
-    }catch(_){ /* never block the lead on a delivery error */ }
+    const fd = new FormData();
+    Object.entries(payload).forEach(([k,v]) => fd.append(k, v));
+    const queued = navigator.sendBeacon && navigator.sendBeacon(SUBMIT_URL, fd);
+    if (!queued){
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 4000);
+      try{ await fetch(SUBMIT_URL, {method:"POST", body: fd, keepalive: true, signal: ctl.signal}); }
+      catch(_){ /* never block the lead on a delivery error */ }
+      clearTimeout(t);
+    }
   }
   if (testMode) console.log("TEST", r.score, r.ko, outcome);
   document.body.dataset.outcome = r.qualified ? "apply" : "nurture";

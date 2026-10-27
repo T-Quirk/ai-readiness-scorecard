@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Readiness Scorecard | Precision Projects</title>
+<meta name="description" content="Ten questions, two minutes. Find out where AI can take time and cost out of your estimating, job costing and project admin.">
+<style>
+  :root{
+    --bg:#f6f5f2; --card:#ffffff; --ink:#16181d; --muted:#5d636e; --line:#dcdad4;
+    --accent:#0f5c4a; --accent-ink:#ffffff; --sel:#e7f1ee; --err:#a32020;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#111315; --card:#1a1d21; --ink:#eceae5; --muted:#a2a7b0; --line:#2e3238;
+      --accent:#3fa58a; --accent-ink:#0d1210; --sel:#1d2f2a; --err:#ff8a8a; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  main{max-width:640px;margin:0 auto;padding:32px 16px 64px}
+  .brand{font-weight:700;letter-spacing:.02em;font-size:14px;color:var(--muted);text-transform:uppercase}
+  h1{font-size:28px;line-height:1.2;margin:8px 0 8px}
+  .lede{color:var(--muted);margin:0 0 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin:0 0 16px}
+  .q{font-weight:600;margin:0 0 4px}
+  .hint{color:var(--muted);font-size:14px;margin:0 0 12px}
+  .opts{display:grid;gap:8px}
+  .opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer}
+  .opt:has(input:checked){border-color:var(--accent);background:var(--sel)}
+  .opt input{margin-top:4px;accent-color:var(--accent)}
+  label.f{display:block;font-weight:600;margin:12px 0 4px}
+  input[type=text],input[type=email]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+  button{width:100%;padding:14px;border:0;border-radius:8px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:700;cursor:pointer}
+  button[disabled]{opacity:.6;cursor:wait}
+  .err{color:var(--err);font-size:14px;margin:8px 0 0;min-height:1em}
+  .progress{height:6px;background:var(--line);border-radius:3px;margin:0 0 20px;overflow:hidden}
+  .progress span{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+  #result{display:none}
+  #result h2{margin-top:0}
+  #result ol{padding-left:20px}
+  #result li{margin:0 0 12px}
+  .small{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">Precision Projects</div>
+
+  <section id="quiz">
+    <h1>AI Readiness Scorecard</h1>
+    <p class="lede">Ten questions, about two minutes. It tells you where AI can take time and cost out of your estimating, job costing and project admin, and whether a working session with me is worth your time.</p>
+    <div class="progress" aria-hidden="true"><span id="bar"></span></div>
+    <form id="form" novalidate>
+      <div id="questions"></div>
+      <div class="card">
+        <p class="q">Where should we send your result?</p>
+        <label class="f" for="name">Name</label>
+        <input type="text" id="name" name="name" autocomplete="name" required>
+        <label class="f" for="email">Work email</label>
+        <input type="email" id="email" name="email" autocomplete="email" required>
+        <label class="f" for="company">Company</label>
+        <input type="text" id="company" name="company" autocomplete="organization" required>
+      </div>
+      <button type="submit" id="submit">See my result</button>
+      <p class="err" id="err" role="alert"></p>
+      <p class="small">Your answers go to Precision Projects only. No spam, unsubscribe any time.</p>
+    </form>
+  </section>
+
+  <section id="result" class="card" aria-live="polite">
+    <h2>Thanks, we'll be in touch.</h2>
+    <p>From your answers, the best next step is a few practical changes your team can make now. Here are three that work in most contractors and consultancies:</p>
+    <ol>
+      <li><strong>Give AI your own past jobs, not a blank page.</strong> Before you ask ChatGPT or Claude to price or check a scope, paste in two or three past estimates for similar work. It then works in your rates and your format instead of guessing.</li>
+      <li><strong>Make it list its assumptions.</strong> End every estimating or cost prompt with "list every assumption and every item you left out". Most AI pricing errors come from things it silently assumed or skipped, and this brings them to the surface for your estimator to sign off.</li>
+      <li><strong>Turn one monthly report into a margin check.</strong> Export your job-cost report from your accounts system once a month and ask AI for a one-page summary per job: budget vs actual, costs posted to the wrong job, and anything unbilled. Twenty minutes, and you see margin leaks while the job is still running.</li>
+    </ol>
+    <p>We'll send more workflows like these to your inbox.</p>
+  </section>
+</main>
+
+<script>
+// Scoring spec: 9 scored questions, max 3 points each = 27. Book at 17+.
+// Q8 (systems) is routing only. Knock-outs override the score.
+const THRESHOLD = 17;
+const APPLY_URL = "https://www.precisionproject.org/apply";
+const SUBMIT_URL = "https://formsubmit.co/ajax/info@precisionproject.org";
+
+const QUESTIONS = [
+  {id:"role", q:"What is your role?", opts:[
+    ["Owner, founder or managing director",3],
+    ["Director (commercial, operations, estimating or projects)",3],
+    ["Manager (commercial, cost, project or QS manager)",2],
+    ["Estimator, quantity surveyor or project engineer",1],
+    ["Other",0]]},
+  {id:"headcount", q:"How many people work in your business?", opts:[
+    ["1–9",0],["10–19",1],["20–100",3],["101–250",2],["More than 250",1]]},
+  {id:"turnover", q:"What is your annual turnover?", hint:"In £ or $, whichever you report in.", opts:[
+    ["Under 2m",0,"ko"],["2m–5m",2],["5m–30m",3],["More than 30m",2]]},
+  {id:"geo", q:"Where is your business based?", opts:[
+    ["United Kingdom",3],["United States",3],["Canada",3],["Australia",3],["New Zealand",3],["Other",0,"ko"]]},
+  {id:"signoff", q:"Who signs off a £/$5,000 spend on something like this?", opts:[
+    ["I do",3],["I recommend it, and a partner or the board decides",2],["Someone else",1],["Don't know",0,"ko"]]},
+  {id:"timing", q:"When do you want to fix this?", opts:[
+    ["This month",3],["In the next three months",2],["Sometime this year",1],["Just exploring",0]]},
+  {id:"ai", q:"How is your team using AI tools today?", opts:[
+    ["Paid ChatGPT, Claude or Copilot across the team",3],
+    ["A few of us use it on our own",2],
+    ["We tried it and it didn't stick",1],
+    ["Not at all",0]]},
+  {id:"stack", q:"Which systems do you use for estimating and finance?", hint:"Tick all that apply.", multi:true, opts:[
+    ["Excel or Google Sheets"],["QuickBooks"],["Xero"],["Sage"],["Procore"],["Buildertrend"],["CostX or a takeoff tool"],["Microsoft 365"],["Other"]]},
+  {id:"leak", q:"Where does your business lose the most time or money?", opts:[
+    ["Estimating and bid preparation",3],
+    ["Job costing and margin visibility",3],
+    ["Variations, change orders and extensions of time",3],
+    ["Procurement and subcontractor management",2],
+    ["Reporting and admin",2],
+    ["Not sure",0]]},
+  {id:"cost", q:"Roughly what does that cost you a month?", hint:"Wasted hours, lost margin and rework, in £ or $.", opts:[
+    ["Under 1,000",0],["1,000–5,000",1],["5,000–20,000",2],["More than 20,000",3]]}
+];
+
+const params = new URLSearchParams(location.search);
+const utmSource = (params.get("utm_source") || "direct").slice(0,60);
+const testMode = params.get("test") === "1";
+
+const wrap = document.getElementById("questions");
+QUESTIONS.forEach((item, i) => {
+  const card = document.createElement("fieldset");
+  card.className = "card";
+  card.style.border = "1px solid var(--line)";
+  const legend = document.createElement("legend");
+  legend.className = "q";
+  legend.textContent = (i+1) + ". " + item.q;
+  card.appendChild(legend);
+  if (item.hint){ const h=document.createElement("p"); h.className="hint"; h.textContent=item.hint; card.appendChild(h); }
+  const opts = document.createElement("div"); opts.className="opts";
+  item.opts.forEach((o, j) => {
+    const lab = document.createElement("label"); lab.className="opt";
+    const inp = document.createElement("input");
+    inp.type = item.multi ? "checkbox" : "radio";
+    inp.name = item.id; inp.value = String(j);
+    inp.addEventListener("change", updateBar);
+    const span = document.createElement("span"); span.textContent = o[0];
+    lab.append(inp, span); opts.appendChild(lab);
+  });
+  card.appendChild(opts); wrap.appendChild(card);
+});
+
+function answered(){ return QUESTIONS.filter(q => document.querySelector(`input[name="${q.id}"]:checked`)).length; }
+function updateBar(){ document.getElementById("bar").style.width = (answered()/QUESTIONS.length*100)+"%"; }
+
+function evaluate(){
+  let score = 0; const ko = []; const answers = {};
+  for (const q of QUESTIONS){
+    const picked = [...document.querySelectorAll(`input[name="${q.id}"]:checked`)].map(i => q.opts[+i.value]);
+    answers[q.id] = picked.map(o => o[0]).join("; ");
+    if (q.multi) continue;
+    const o = picked[0];
+    score += o[1];
+    if (o[2] === "ko") ko.push(q.id);
+  }
+  return {score, ko, answers, qualified: score >= THRESHOLD && ko.length === 0};
+}
+
+document.getElementById("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = document.getElementById("err"); err.textContent = "";
+  const missing = QUESTIONS.findIndex(q => !document.querySelector(`input[name="${q.id}"]:checked`));
+  if (missing !== -1){ err.textContent = `Please answer question ${missing+1}.`; return; }
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const company = document.getElementById("company").value.trim();
+  if (!name || !company || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ err.textContent = "Please add your name, a valid email and your company."; return; }
+
+  const r = evaluate();
+  const outcome = r.qualified ? "QUALIFIED → /apply" : "NURTURE";
+  const payload = {
+    _subject: `Scorecard: ${outcome} · ${r.score}/27 · ${company} · ${utmSource}`,
+    _template: "table", _captcha: "false",
+    name, email, company, utm_source: utmSource,
+    score: `${r.score} / 27`, outcome,
+    knock_outs: r.ko.length ? r.ko.join(", ") : "none",
+    ...Object.fromEntries(QUESTIONS.map((q,i) => [`Q${i+1} ${q.q}`, r.answers[q.id]]))
+  };
+
+  const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "Working…";
+  if (!testMode){
+    try{
+      await fetch(SUBMIT_URL, {method:"POST", headers:{"Content-Type":"application/json","Accept":"application/json"}, body: JSON.stringify(payload)});
+    }catch(_){ /* never block the lead on a delivery error */ }
+  }
+  if (testMode) console.log("TEST", r.score, r.ko, outcome);
+  document.body.dataset.outcome = r.qualified ? "apply" : "nurture";
+  document.body.dataset.score = String(r.score);
+
+  if (r.qualified && !testMode){
+    const u = new URL(APPLY_URL);
+    u.searchParams.set("utm_source", utmSource);
+    location.href = u.toString();
+    return;
+  }
+  if (r.qualified && testMode){ document.getElementById("err").textContent = "TEST MODE: would redirect to " + APPLY_URL; btn.disabled=false; btn.textContent="See my result"; return; }
+  document.getElementById("quiz").style.display = "none";
+  document.getElementById("result").style.display = "block";
+  window.scrollTo(0,0);
+});
+</script>
+</body>
+</html>
